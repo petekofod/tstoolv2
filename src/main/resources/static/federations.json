@@ -4,7 +4,7 @@
   "federations": [
     {
       "name": "Test of one half",
-      "total-servers": 10,
+      "total_servers": 10,
       "operational_servers": 5
     },
     {
