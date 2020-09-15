@@ -1,0 +1,26 @@
+{
+  "SCAC": "AMTK",
+  "mark": "AMTK",
+  "federations": [
+    {
+      "name": "Test of one half",
+      "total-servers": 10,
+      "operational_servers": 5
+    },
+    {
+      "name": "Test of all",
+      "total_servers": 10,
+      "operational_servers": 10
+    },
+    {
+      "name": "Test of none",
+      "total_servers": 10,
+      "operational_servers": 0
+    },
+    {
+      "name": "Test of zero",
+      "total_servers": 0,
+      "operational_servers": 0
+    }
+  ]
+}
