@@ -35,6 +35,33 @@ public class FederationsController {
     private Environment env;
 
     private static String IOB_ADDRESS;
+    private static String REMOTE_HOST;
+    private static String REMOTE_USERNAME;
+    private static String REMOTE_KEY;
+
+    public String getRemoteHost() {
+        if (REMOTE_HOST == null) {
+            REMOTE_HOST = env.getProperty("remote_host");
+        }
+
+        return REMOTE_HOST;
+    }
+
+    public String getRemoteUsername() {
+        if (REMOTE_USERNAME == null) {
+            REMOTE_USERNAME = env.getProperty("remote_username");
+        }
+
+        return REMOTE_USERNAME;
+    }
+
+    public String getRemoteKey() {
+        if (REMOTE_KEY == null) {
+            REMOTE_KEY = env.getProperty("remote_key");
+        }
+
+        return REMOTE_KEY;
+    }
 
     private String getIP() {
         if (IOB_ADDRESS == null) {
@@ -44,9 +71,10 @@ public class FederationsController {
         return IOB_ADDRESS;
     }
 
-    private String callQpidRoute(String ip) throws IOException {
+    private String callQpidRoute(String ip, String key, String username, String host) throws IOException {
         Runtime rt = Runtime.getRuntime();
-        String[] command = { "qpid-route.bat", "link", "list", ip + ":16000"};
+        String[] command = { "ssh", "-i", key, username + "@" + host,
+                "qpid-route", "link", "list", ip + ":16000"};
 
         Process proc;
         try {
@@ -125,7 +153,7 @@ public class FederationsController {
 
         String qpidRoute;
         try {
-            qpidRoute = callQpidRoute(getIP());
+            qpidRoute = callQpidRoute(getIP(), getRemoteKey(), getRemoteUsername(), getRemoteHost());
         } catch (IOException e) {
             logger.debug("Can't get results of qpid-route!", e);
             throw new ResponseStatusException(
