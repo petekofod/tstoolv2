@@ -144,6 +144,7 @@ public class FederationsController {
     @CrossOrigin
     @RequestMapping("/federations.json/{scac}")
     public String railroads(@PathVariable(value="scac") String scac) {
+        scac = scac.toUpperCase();
         logger.debug("Requesting federation statuses for " + scac);
 
         List<String> federations = SCAC_FEDERATION.get(scac);
