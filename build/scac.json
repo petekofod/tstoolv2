@@ -1,0 +1,5 @@
+{
+  "AMTK": ["amtk", "bnsf", "cn", "cprs", "csao", "csxt", "htix", "kcs", "metx", "nctc", "njtr", "ns", "pjpb", "rcax", "scax", "sepa", "up", "xorr"],
+  "VREX": ["vrex", "csxt", "ns"],
+  "ALL": ["amtk", "bnsf", "cn", "cprs", "csao", "csxt", "htix", "kcs", "metx", "nctc", "njtr", "ns", "pjpb", "rcax", "scax", "sepa", "up", "xorr", "vrex"]
+}

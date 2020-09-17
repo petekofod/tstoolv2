@@ -1,11 +1,13 @@
 package net.railwaynet.logdelivery.strolr;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
@@ -25,13 +28,9 @@ public class FederationsController {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final Map<String, List<String>> SCAC_FEDERATION = new HashMap<>();
+    private static final String SCAC_FILE = "scac.json";
 
-    static {
-        SCAC_FEDERATION.put("AMTK", Arrays.asList("amtk", "bnsf", "cn", "cprs", "csao", "csxt", "htix", "kcs", "metx", "nctc", "njtr", "ns", "pjpb", "rcax", "scax", "sepa", "up", "xorr"));
-        SCAC_FEDERATION.put("VREX", Arrays.asList("vrex", "csxt", "ns"));
-        SCAC_FEDERATION.put("ALL", Arrays.asList("amtk", "bnsf", "cn", "cprs", "csao", "csxt", "htix", "kcs", "metx", "nctc", "njtr", "ns", "pjpb", "rcax", "scax", "sepa", "up", "xorr", "vrex"));
-    }
+    private static Map<String, List<String>> SCAC_FEDERATION;
 
     @Autowired
     private Environment env;
@@ -40,6 +39,27 @@ public class FederationsController {
     private static String REMOTE_HOST;
     private static String REMOTE_USERNAME;
     private static String REMOTE_KEY;
+
+    public Map<String, List<String>> getScacFederation() {
+        if (SCAC_FEDERATION == null) {
+            try {
+                SCAC_FEDERATION = objectMapper.readValue(new FileReader(SCAC_FILE),
+                        new TypeReference<Map<String, List<String>>>() {});
+                if (logger.isInfoEnabled()) {
+                    logger.info("List of SCAC:");
+                    for (Map.Entry<String, List<String>> entry: SCAC_FEDERATION.entrySet()) {
+                        logger.info(entry.getKey() + " : " + Arrays.toString(entry.getValue().toArray()));
+                    }
+                }
+            } catch (IOException e) {
+                logger.error("Can't read " + SCAC_FILE, e);
+                throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "Can't read the list of SCAC/railroads!", e);
+            }
+        }
+
+        return SCAC_FEDERATION;
+    }
 
     public String getRemoteHost() {
         if (REMOTE_HOST == null) {
@@ -161,7 +181,7 @@ public class FederationsController {
         scac = scac.toUpperCase();
         logger.debug("Requesting federation statuses for " + scac);
 
-        List<String> federations = SCAC_FEDERATION.get(scac);
+        List<String> federations = getScacFederation().get(scac);
 
         if (federations == null) {
             throw new ResponseStatusException(
