@@ -29,7 +29,8 @@ public class FederationsController {
 
     static {
         SCAC_FEDERATION.put("AMTK", Arrays.asList("amtk", "bnsf", "cn", "cprs", "csao", "csxt", "htix", "kcs", "metx", "nctc", "njtr", "ns", "pjpb", "rcax", "scax", "sepa", "up", "xorr"));
-        SCAC_FEDERATION.put("VREX", Collections.singletonList("vrex"));
+        SCAC_FEDERATION.put("VREX", Arrays.asList("vrex", "csxt", "ns"));
+        SCAC_FEDERATION.put("ALL", Arrays.asList("amtk", "bnsf", "cn", "cprs", "csao", "csxt", "htix", "kcs", "metx", "nctc", "njtr", "ns", "pjpb", "rcax", "scax", "sepa", "up", "xorr", "vrex"));
     }
 
     @Autowired
@@ -43,6 +44,7 @@ public class FederationsController {
     public String getRemoteHost() {
         if (REMOTE_HOST == null) {
             REMOTE_HOST = env.getProperty("remote_host");
+            logger.info("SSH remote host: " + REMOTE_HOST);
         }
 
         return REMOTE_HOST;
@@ -51,6 +53,7 @@ public class FederationsController {
     public String getRemoteUsername() {
         if (REMOTE_USERNAME == null) {
             REMOTE_USERNAME = env.getProperty("remote_username");
+            logger.info("SSH username: " + REMOTE_USERNAME);
         }
 
         return REMOTE_USERNAME;
@@ -59,6 +62,7 @@ public class FederationsController {
     public String getRemoteKey() {
         if (REMOTE_KEY == null) {
             REMOTE_KEY = env.getProperty("remote_key");
+            logger.info("SSH key: " + REMOTE_KEY);
         }
 
         return REMOTE_KEY;
@@ -67,6 +71,7 @@ public class FederationsController {
     private String getIP() {
         if (IOB_ADDRESS == null) {
             IOB_ADDRESS = env.getProperty("iobaddress");
+            logger.info("IOB Address: " + IOB_ADDRESS);
         }
 
         return IOB_ADDRESS;
@@ -76,6 +81,9 @@ public class FederationsController {
         Runtime rt = Runtime.getRuntime();
         String[] command = { "ssh", "-i", key, username + "@" + host,
                 "qpid-route", "link", "list", ip + ":16000"};
+
+        logger.debug("Running qpid-route as:");
+        logger.debug(Arrays.toString(command));
 
         Process proc;
         try {
@@ -100,6 +108,12 @@ public class FederationsController {
                 throw e;
             }
             res.append(s).append(System.getProperty("line.separator"));
+        }
+
+        if (proc.exitValue() != 0) {
+            logger.error("Can't execute the command line:");
+            logger.error(Arrays.toString(command));
+            throw new RuntimeException("Invalid exit code of the command line: " + proc.exitValue());
         }
 
         logger.debug("qpid-route output: ");
