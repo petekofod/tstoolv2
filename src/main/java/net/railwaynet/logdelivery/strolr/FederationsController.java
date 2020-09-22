@@ -97,7 +97,7 @@ public class FederationsController {
         return IOB_ADDRESS;
     }
 
-    private String callQpidRoute(String ip, String key, String username, String host) throws IOException {
+    private String callQpidRoute(String ip, String key, String username, String host) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
         String[] command = { "ssh", "-i", key, username + "@" + host,
                 "qpid-route", "link", "list", ip + ":16000"};
@@ -130,10 +130,15 @@ public class FederationsController {
             res.append(s).append(System.getProperty("line.separator"));
         }
 
-        if (proc.exitValue() != 0) {
-            logger.error("Can't execute the command line:");
-            logger.error(Arrays.toString(command));
-            throw new RuntimeException("Invalid exit code of the command line: " + proc.exitValue());
+        try {
+            if (proc.waitFor() != 0) {
+                logger.error("Can't execute the command line:");
+                logger.error(Arrays.toString(command));
+                throw new RuntimeException("Invalid exit code of the command line: " + proc.exitValue());
+            }
+        } catch (InterruptedException e) {
+            logger.error("Shell command process failed to terminate!");
+            throw e;
         }
 
         logger.debug("qpid-route output: ");
@@ -191,7 +196,7 @@ public class FederationsController {
         String qpidRoute;
         try {
             qpidRoute = callQpidRoute(getIP(), getRemoteKey(), getRemoteUsername(), getRemoteHost());
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             logger.debug("Can't get results of qpid-route!", e);
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR, "Can't get results of qpid-route command!", e);
