@@ -1,0 +1,76 @@
+{
+  "systems": [
+    {
+      "header": "CIBOS System Status",
+      "type": "BOS",
+      "servers": [
+        {
+          "number": 1,
+          "status": "OK"
+        },
+        {
+          "number": 2,
+          "status": "WARNING"
+        },
+        {
+          "number": 3,
+          "status": "CRITICAL"
+        }
+      ]
+    },
+    {
+      "header": "Nationwide ARIS System Status",
+      "type": "ARIS",
+      "servers": [
+        {
+          "number": 1,
+          "status": "OK"
+        },
+        {
+          "number": 2,
+          "status": "OK"
+        },
+        {
+          "number": 3,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "header": "Mobile Device Manager (MDM) System Status",
+      "type": "MDM",
+      "servers": [
+        {
+          "number": 1,
+          "status": "CRITICAL"
+        },
+        {
+          "number": 2,
+          "status": "WARNING"
+        },
+        {
+          "number": 3,
+          "status": "CRITICAL"
+        }
+      ]
+    },
+    {
+      "header": "Amazon Web Service MIS System Status",
+      "type": "ARIS",
+      "servers": [
+        {
+          "number": 1,
+          "status": "OK"
+        },
+        {
+          "number": 2,
+          "status": "WARNING"
+        },
+        {
+          "number": 3,
+          "status": "WARNING"
+        }
+      ]
+    }
+  ]
+}
