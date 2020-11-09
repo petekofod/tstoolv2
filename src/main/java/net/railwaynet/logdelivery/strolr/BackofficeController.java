@@ -79,7 +79,7 @@ public class BackofficeController {
         }
 
         try {
-            if (proc.waitFor() != 0) {
+            if (proc.waitFor() > 2) {
                 logger.error("Can't execute the command line:");
                 logger.error(Arrays.toString(command));
                 throw new RuntimeException("Invalid exit code of the command line: " + proc.exitValue());
