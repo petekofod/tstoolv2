@@ -16,12 +16,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.StringReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.jcraft.jsch.*;
 
 @RestController
 public class BackofficeController {
@@ -46,53 +50,120 @@ public class BackofficeController {
         }
     }
 
-    private String getServerStatus(String ip, String key, String script) throws InterruptedException, IOException {
-        Runtime rt = Runtime.getRuntime();
-        String[] command = { "ssh", "-i", key, "railwaynet@" + ip, script };
-
-        logger.debug("Running remote script as:");
-        logger.debug(Arrays.toString(command));
-
-        Process proc;
+    private String getServerStatus(String ip, String key, String script) throws Exception {
+    	
+    	JSch jsch = new JSch();
+        Session session = null;
+        ChannelExec channel = null;
+        String privateKeyPath = key;
+        String responseString;
+        
         try {
-            proc = rt.exec(command);
-        } catch (IOException e) {
-            logger.error("Can't execute the command line:");
-            logger.error(Arrays.toString(command));
-            throw e;
-        }
+            logger.debug("Connecting to " + ip + "as railwaynet using: " + privateKeyPath);
+            logger.debug("Script called is: " + script);         
 
-        BufferedReader stdInput = new BufferedReader(new
-                InputStreamReader(proc.getInputStream()));
+            jsch.addIdentity(privateKeyPath);	    
+            session = jsch.getSession("railwaynet", ip, 22);
+            session.setConfig("PreferredAuthentications", "publickey,keyboard-interactive,password");
+            session.setConfig("StrictHostKeyChecking", "no");
 
-        StringBuilder res = new StringBuilder();
+            session.connect();
+            channel = (ChannelExec) session.openChannel("exec");
+            channel.setCommand(script);
 
-        String s;
-        while (true) {
-            try {
-                if ((s = stdInput.readLine()) == null) break;
-            } catch (IOException e) {
-                logger.error("Can't read the command line output!");
-                throw e;
+            ByteArrayOutputStream responseStream = new ByteArrayOutputStream();
+            BufferedReader bufferedReader;
+            
+
+            channel.setOutputStream(responseStream);
+            channel.connect();
+            while (channel.isConnected()) {
+                Thread.sleep(1000);
+            }            
+            responseString = responseStream.toString();
+            logger.debug("responseString: "+ responseString);
+            
+            StringBuilder res = new StringBuilder();
+
+            String s;
+            while (true) {
+                try {
+                	bufferedReader = new BufferedReader(new StringReader(new String(responseStream.toByteArray())));
+                    if ((s = bufferedReader.readLine()) == null) break;
+                } catch (IOException e) {
+                    logger.error("Can't read the command line output!");
+                    throw e;
+                }
+                res.append(s).append(System.getProperty("line.separator"));
             }
-            res.append(s).append(System.getProperty("line.separator"));
-        }
 
-        try {
-            if (proc.waitFor() != 0) {
-                logger.error("Can't execute the command line:");
-                logger.error(Arrays.toString(command));
-                throw new RuntimeException("Invalid exit code of the command line: " + proc.exitValue());
+			/*
+			 * try { if (proc.waitFor() != 0) {
+			 * logger.error("Can't execute the command line:");
+			 * logger.error(Arrays.toString(command)); throw new
+			 * RuntimeException("Invalid exit code of the command line: " +
+			 * proc.exitValue()); }
+			 */
+            
+			/*
+			 * } catch (InterruptedException e) {
+			 * logger.error("Shell command process failed to terminate!"); throw e; }
+			 */
+
+            logger.debug("Command output: ");
+            logger.debug(res.toString());
+
+            return res.toString();
+           
+           
+        } 
+        catch (JSchException e) {
+            throw new RuntimeException("Error durring SSH command execution. Command: " + script);            
+        }
+        finally {
+            if (session != null) {
+                session.disconnect();
             }
-        } catch (InterruptedException e) {
-            logger.error("Shell command process failed to terminate!");
-            throw e;
+            if (channel != null) {
+                channel.disconnect();
+            }
         }
+        
+        
+            	
+    	
+		/*
+		 * Runtime rt = Runtime.getRuntime(); String[] command = { "ssh", "-i", key,
+		 * "railwaynet@" + ip, script };
+		 * 
+		 * logger.debug("Running remote script as:");
+		 * logger.debug(Arrays.toString(command));
+		 * 
+		 * Process proc; try { proc = rt.exec(command); } catch (IOException e) {
+		 * logger.error("Can't execute the command line:");
+		 * logger.error(Arrays.toString(command)); throw e; }
+		 */
 
-        logger.debug("Command output: ");
-        logger.debug(res.toString());
 
-        return res.toString();
+		/*
+		 * StringBuilder res = new StringBuilder();
+		 * 
+		 * String s; while (true) { try { if ((s = stdInput.readLine()) == null) break;
+		 * } catch (IOException e) {
+		 * logger.error("Can't read the command line output!"); throw e; }
+		 * res.append(s).append(System.getProperty("line.separator")); }
+		 * 
+		 * try { if (proc.waitFor() != 0) {
+		 * logger.error("Can't execute the command line:");
+		 * logger.error(Arrays.toString(command)); throw new
+		 * RuntimeException("Invalid exit code of the command line: " +
+		 * proc.exitValue()); } } catch (InterruptedException e) {
+		 * logger.error("Shell command process failed to terminate!"); throw e; }
+		 * 
+		 * logger.debug("Command output: "); logger.debug(res.toString());
+		 */
+
+
     }
 
     private void updateStatus(Map<String, Object> serverFamily) {
@@ -104,11 +175,12 @@ public class BackofficeController {
         boolean isAWS = type.equals("AWS");
 
         if (isAWS) {
-            key = env.getProperty("backoffice.key_file");
-            script = env.getProperty("backoffice.remote_script");
-        } else {
             key = env.getProperty("backoffice.aws_key_file");
             script = env.getProperty("backoffice.aws_remote_script");
+
+        } else {       	
+            key = env.getProperty("backoffice.key_file");
+            script = env.getProperty("backoffice.remote_script");
         }
 
         @SuppressWarnings("unchecked") List<Map<String, String>> servers = (List<Map<String, String>>) serverFamily.get("servers");
@@ -123,12 +195,15 @@ public class BackofficeController {
                 if (isAWS) {
                     if (out.contains("Bad")) status = "CRITICAL";
                     if (out.contains("Good")) status = "OK";
+                    logger.debug(ip + " AWS status is: " + status);
                 } else {
                     if (out.contains("CRITICAL")) status = "CRITICAL";
                     if (out.contains("WARNING")) status = "WARNING";
                     if (out.contains("OK")) status = "OK";
+                    logger.debug(ip + " AIM status is: " + status);
                 }
-            } catch (InterruptedException | IOException e) {
+
+            } catch (Exception e) {
                 logger.error("Can't get status of server " + ip, e);
                 status = "CRITICAL";
             }
