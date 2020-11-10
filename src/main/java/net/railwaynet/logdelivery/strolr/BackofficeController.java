@@ -153,9 +153,9 @@ public class BackofficeController {
                     HttpStatus.NO_CONTENT, "No data for the SCAC " + scac);
         }
         Map<String, List<Map<String, Object>>> res = new HashMap<>();
-        res.put(scac, config.get(scac));
+        res.put("systems", config.get(scac));
 
-        for (Map<String, Object> serverFamily: res.get(scac)) {
+        for (Map<String, Object> serverFamily: res.get("systems")) {
             updateStatus(serverFamily);
         }
 
