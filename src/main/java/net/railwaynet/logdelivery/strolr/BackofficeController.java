@@ -14,10 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +35,8 @@ public class BackofficeController {
     public Map<String, List<Map<String, Object>>> getBackofficeData() {
         try {
             return objectMapper.readValue(new FileReader(BACKOFFICE_FILE),
-                    new TypeReference<Map<String, List<Map<String, Object>>>>() {});
+                    new TypeReference<Map<String, List<Map<String, Object>>>>() {
+                    });
         } catch (IOException e) {
             logger.error("Can't read " + BACKOFFICE_FILE, e);
             throw new ResponseStatusException(
@@ -48,7 +46,7 @@ public class BackofficeController {
 
     private String getServerStatus(String ip, String key, String username, String script) throws InterruptedException, IOException {
         Runtime rt = Runtime.getRuntime();
-        String[] command = { "ssh", "-t", "-i", key, username + "@" + ip, script };
+        String[] command = {"ssh", "-t", "-i", key, username + "@" + ip, script};
 
         logger.debug("Running remote script as:");
         logger.debug(Arrays.toString(command));
@@ -62,32 +60,37 @@ public class BackofficeController {
             throw e;
         }
 
-        BufferedReader stdInput = new BufferedReader(new
-                InputStreamReader(proc.getInputStream()));
+        StreamGobbler errorGobbler = new
+                StreamGobbler(proc.getErrorStream(), "ERROR");
+
+        StreamGobbler outputGobbler = new
+                StreamGobbler(proc.getInputStream(), "OUTPUT");
+
 
         StringBuilder res = new StringBuilder();
 
-        String s;
-        while (true) {
-            try {
-                if ((s = stdInput.readLine()) == null) break;
-            } catch (IOException e) {
-                logger.error("Can't read the command line output!");
-                throw e;
-            }
-            res.append(s).append(System.getProperty("line.separator"));
-        }
+        errorGobbler.start();
+        outputGobbler.start();
 
         try {
-            if (proc.waitFor() > 2) {
+            int rc = proc.waitFor();
+            logger.debug("Return code is " + rc);
+            if (rc > 2) {
                 logger.error("Can't execute the command line:");
                 logger.error(Arrays.toString(command));
-                throw new RuntimeException("Invalid exit code of the command line: " + proc.exitValue());
             }
         } catch (InterruptedException e) {
             logger.error("Shell command process failed to terminate!");
             throw e;
         }
+
+        logger.debug("ERROR stream:");
+        logger.debug(errorGobbler.result);
+        res.append(errorGobbler.result);
+
+        logger.debug("OUTPUT stream:");
+        logger.debug(outputGobbler.result);
+        res.append(outputGobbler.result);
 
         logger.debug("Command output: ");
         logger.debug(res.toString());
@@ -116,7 +119,7 @@ public class BackofficeController {
 
         @SuppressWarnings("unchecked") List<Map<String, String>> servers = (List<Map<String, String>>) serverFamily.get("servers");
 
-        for (Map<String, String> server: servers) {
+        for (Map<String, String> server : servers) {
             String ip = server.get("IP");
             String status = "";
 
@@ -155,7 +158,7 @@ public class BackofficeController {
         Map<String, List<Map<String, Object>>> res = new HashMap<>();
         res.put("systems", config.get(scac));
 
-        for (Map<String, Object> serverFamily: res.get("systems")) {
+        for (Map<String, Object> serverFamily : res.get("systems")) {
             updateStatus(serverFamily);
         }
 
@@ -164,6 +167,37 @@ public class BackofficeController {
         } catch (JsonProcessingException e) {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR, "Can't serialize the result to JSON!", e);
+        }
+    }
+}
+
+class StreamGobbler extends Thread {
+    private static final Logger logger = LoggerFactory.getLogger(StreamGobbler.class);
+
+    InputStream is;
+    String type;
+    String result;
+
+    StreamGobbler(InputStream is, String type) {
+        this.is = is;
+        this.type = type;
+    }
+
+    public void run() {
+        try {
+            logger.debug("Reading " + type);
+            InputStreamReader isr = new InputStreamReader(is);
+            BufferedReader br = new BufferedReader(isr);
+            String line;
+            StringBuilder sb = new StringBuilder();
+
+            while ((line = br.readLine()) != null)
+                sb.append(line);
+
+            logger.debug("Reading " + type + " completed");
+            result = sb.toString();
+        } catch (IOException ioe) {
+            logger.error("Exception while reading " + type, ioe);
         }
     }
 }
