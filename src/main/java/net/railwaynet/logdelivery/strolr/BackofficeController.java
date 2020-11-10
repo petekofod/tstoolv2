@@ -46,7 +46,7 @@ public class BackofficeController {
 
     private String getServerStatus(String ip, String key, String username, String script) throws InterruptedException, IOException {
         Runtime rt = Runtime.getRuntime();
-        String[] command = {"ssh", "-t", "-i", key, username + "@" + ip, script};
+        String[] command = {"ssh", "-tt", "-i", key, username + "@" + ip, script};
 
         logger.debug("Running remote script as:");
         logger.debug(Arrays.toString(command));
@@ -192,7 +192,7 @@ class StreamGobbler extends Thread {
             StringBuilder sb = new StringBuilder();
 
             while ((line = br.readLine()) != null)
-                sb.append(line);
+                sb.append(line).append(System.lineSeparator());
 
             logger.debug("Reading " + type + " completed");
             result = sb.toString();
