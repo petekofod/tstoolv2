@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 public class BackofficeController {
@@ -71,6 +72,8 @@ public class BackofficeController {
 
         errorGobbler.start();
         outputGobbler.start();
+
+        TimeUnit.SECONDS.sleep(1);
 
         try {
             int rc = proc.waitFor();
