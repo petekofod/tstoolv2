@@ -48,7 +48,7 @@ public class BackofficeController {
 
     private String getServerStatus(String ip, String key, String username, String script) throws InterruptedException, IOException {
         Runtime rt = Runtime.getRuntime();
-        String[] command = { "ssh", "-i", key, username + "@" + ip, script };
+        String[] command = { "ssh", "-t", "-i", key, username + "@" + ip, script };
 
         logger.debug("Running remote script as:");
         logger.debug(Arrays.toString(command));
@@ -105,13 +105,13 @@ public class BackofficeController {
         boolean isAWS = type.equals("AWS");
 
         if (isAWS) {
-            username = env.getProperty("backoffice.username");
-            key = env.getProperty("backoffice.key_file");
-            script = env.getProperty("backoffice.remote_script");
-        } else {
             username = env.getProperty("backoffice.aws_username");
             key = env.getProperty("backoffice.aws_key_file");
             script = env.getProperty("backoffice.aws_remote_script");
+        } else {
+            username = env.getProperty("backoffice.username");
+            key = env.getProperty("backoffice.key_file");
+            script = env.getProperty("backoffice.remote_script");
         }
 
         @SuppressWarnings("unchecked") List<Map<String, String>> servers = (List<Map<String, String>>) serverFamily.get("servers");
