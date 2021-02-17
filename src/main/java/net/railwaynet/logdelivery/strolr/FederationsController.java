@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
@@ -28,7 +29,8 @@ public class FederationsController {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final String SCAC_FILE = "scac.json";
+    @Value("${scac.federations.mapping.file:scac.json}")
+    private String SCAC_FILE;
 
     private static Map<String, List<String>> SCAC_FEDERATION;
 
