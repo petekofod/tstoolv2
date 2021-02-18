@@ -3,6 +3,7 @@ package net.railwaynet.logdelivery.strolr;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jcraft.jsch.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +46,46 @@ public class BackofficeController {
         }
     }
 
-    private String getServerStatus(String ip, String key, String username, String script) throws InterruptedException, IOException {
+    private String getServerStatus(String ip, String key, String username, String script) throws JSchException, IOException {
+        String result;
+
+        JSch jsch = new JSch();
+        jsch.addIdentity(key);
+
+        Session session=jsch.getSession(username, ip, 22);
+
+        try {
+            session.connect();
+
+            ChannelExec channel= (ChannelExec) session.openChannel("exec");
+            channel.setCommand(script);
+            channel.setErrStream(System.err);
+
+            InputStream is = channel.getInputStream();
+            try {
+                channel.connect();
+                InputStreamReader isr = new InputStreamReader(is);
+                BufferedReader br = new BufferedReader(isr);
+                String line;
+                StringBuilder sb = new StringBuilder();
+
+                while ((line = br.readLine()) != null)
+                    sb.append(line).append(System.lineSeparator());
+
+                logger.debug("Reading completed");
+                result = sb.toString();
+            } finally {
+                session.disconnect();
+            }
+        } finally {
+            session.disconnect();
+        }
+
+        return result;
+    }
+
+    private String getServerStatus1(String ip, String key, String username, String script) throws InterruptedException, IOException {
+
         Runtime rt = Runtime.getRuntime();
         String[] command = {"ssh", "-tt", "-i", key, username + "@" + ip, script};
 
@@ -137,7 +177,7 @@ public class BackofficeController {
                     if (out.contains("WARNING")) status = "WARNING";
                     if (out.contains("OK")) status = "OK";
                 }
-            } catch (InterruptedException | IOException e) {
+            } catch (JSchException | IOException e) {
                 logger.error("Can't get status of server " + ip, e);
                 status = "CRITICAL";
             }
