@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -31,7 +32,8 @@ public class BackofficeController {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final String BACKOFFICE_FILE = "backoffice.json";
+    @Value("${backoffice.mapping.file:backoffice.json}")
+    private String BACKOFFICE_FILE;
 
     public Map<String, List<Map<String, Object>>> getBackofficeData() {
         try {
