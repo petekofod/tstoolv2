@@ -31,3 +31,6 @@ target/
 
 ### Mac OSX ###
 .DS_Store
+
+### deployment package ###
+build/*.jar
