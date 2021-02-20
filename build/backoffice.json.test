@@ -1,0 +1,86 @@
+{
+  "AMTK": [
+    {
+      "header": "CIBOS System Status",
+      "type": "BOS",
+      "servers": [
+        {
+          "number": 1,
+          "IP": "strolrapi.railwaynet.datasages.com"
+        },
+      ]
+    },
+    {
+      "header": "Nationwide ARIS System Status",
+      "type": "ARIS",
+      "servers": [
+        {
+          "number": 1,
+          "IP": "strolrapi.railwaynet.datasages.com"
+        },
+      ]
+    },
+    {
+      "header": "Mobile Device Manager (MDM) System Status",
+      "type": "MDM",
+      "servers": [
+        {
+          "number": 1,
+          "IP": "strolrapi.railwaynet.datasages.com"
+        },
+      ]
+    },
+    {
+      "header": "Amazon Web Service MIS System Status",
+      "type": "AWS",
+      "servers": [
+        {
+          "number": 1,
+          "IP": "strolrapi.railwaynet.datasages.com"
+        },
+      ]
+    }
+  ],
+  "ALL": [
+  {
+    "header": "CIBOS System Status",
+    "type": "BOS",
+    "servers": [
+      {
+        "number": 1,
+        "IP": "strolrapi.railwaynet.datasages.com"
+      },
+    ]
+  },
+  {
+    "header": "Nationwide ARIS System Status",
+    "type": "ARIS",
+    "servers": [
+      {
+        "number": 1,
+        "IP": "strolrapi.railwaynet.datasages.com"
+      },
+    ]
+  },
+  {
+    "header": "Mobile Device Manager (MDM) System Status",
+    "type": "MDM",
+    "servers": [
+      {
+        "number": 1,
+        "IP": "strolrapi.railwaynet.datasages.com"
+      },
+    ]
+  },
+  {
+    "header": "Amazon Web Service MIS System Status",
+    "type": "AWS",
+    "servers": [
+      {
+        "number": 1,
+        "IP": "strolrapi.railwaynet.datasages.com"
+      },
+    ]
+  }
+]
+}

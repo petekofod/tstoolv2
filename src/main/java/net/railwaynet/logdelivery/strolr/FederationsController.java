@@ -3,11 +3,11 @@ package net.railwaynet.logdelivery.strolr;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jcraft.jsch.JSchException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,10 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.*;
 
 @RestController
@@ -97,56 +95,6 @@ public class FederationsController {
         return IOB_ADDRESS;
     }
 
-    private String callQpidRoute(String ip, String key, String username, String host) throws IOException, InterruptedException {
-        Runtime rt = Runtime.getRuntime();
-        String[] command = { "ssh", "-i", key, username + "@" + host,
-                "qpid-route", "link", "list", ip + ":16000"};
-
-        logger.debug("Running qpid-route as:");
-        logger.debug(Arrays.toString(command));
-
-        Process proc;
-        try {
-            proc = rt.exec(command);
-        } catch (IOException e) {
-            logger.error("Can't execute the command line:");
-            logger.error(Arrays.toString(command));
-            throw e;
-        }
-
-        BufferedReader stdInput = new BufferedReader(new
-                InputStreamReader(proc.getInputStream()));
-
-        StringBuilder res = new StringBuilder();
-
-        String s;
-        while (true) {
-            try {
-                if ((s = stdInput.readLine()) == null) break;
-            } catch (IOException e) {
-                logger.error("Can't read the command line output!");
-                throw e;
-            }
-            res.append(s).append(System.getProperty("line.separator"));
-        }
-
-        try {
-            if (proc.waitFor() != 0) {
-                logger.error("Can't execute the command line:");
-                logger.error(Arrays.toString(command));
-                throw new RuntimeException("Invalid exit code of the command line: " + proc.exitValue());
-            }
-        } catch (InterruptedException e) {
-            logger.error("Shell command process failed to terminate!");
-            throw e;
-        }
-
-        logger.debug("qpid-route output: ");
-        logger.debug(res.toString());
-
-        return res.toString();
-    }
-
     private Map<String, Object> handleFederation(String name, String[] outputLines) {
         logger.debug("Parsing...");
 
@@ -195,8 +143,8 @@ public class FederationsController {
 
         String qpidRoute;
         try {
-            qpidRoute = callQpidRoute(getIP(), getRemoteKey(), getRemoteUsername(), getRemoteHost());
-        } catch (IOException | InterruptedException e) {
+            qpidRoute = RemoteExecBySSH.execScript(getRemoteHost(), getRemoteKey(), getRemoteUsername(), "qpid-route link list " + getIP() + ":16000");
+        } catch (JSchException | IOException e) {
             logger.debug("Can't get results of qpid-route!", e);
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR, "Can't get results of qpid-route command!", e);
