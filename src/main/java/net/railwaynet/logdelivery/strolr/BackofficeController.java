@@ -3,6 +3,7 @@ package net.railwaynet.logdelivery.strolr;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jcraft.jsch.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 public class BackofficeController {
@@ -45,62 +44,6 @@ public class BackofficeController {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR, "Can't read the backoffice servers configuration!", e);
         }
-    }
-
-    private String getServerStatus(String ip, String key, String username, String script) throws InterruptedException, IOException {
-        Runtime rt = Runtime.getRuntime();
-        String[] command = {"ssh", "-tt", "-i", key, username + "@" + ip, script};
-
-        logger.debug("Running remote script as:");
-        logger.debug(Arrays.toString(command));
-
-        Process proc;
-        try {
-            proc = rt.exec(command);
-        } catch (IOException e) {
-            logger.error("Can't execute the command line:");
-            logger.error(Arrays.toString(command));
-            throw e;
-        }
-
-        StreamGobbler errorGobbler = new
-                StreamGobbler(proc.getErrorStream(), "ERROR");
-
-        StreamGobbler outputGobbler = new
-                StreamGobbler(proc.getInputStream(), "OUTPUT");
-
-
-        StringBuilder res = new StringBuilder();
-
-        errorGobbler.start();
-        outputGobbler.start();
-
-        TimeUnit.SECONDS.sleep(1);
-
-        try {
-            int rc = proc.waitFor();
-            logger.debug("Return code is " + rc);
-            if (rc > 2) {
-                logger.error("Can't execute the command line:");
-                logger.error(Arrays.toString(command));
-            }
-        } catch (InterruptedException e) {
-            logger.error("Shell command process failed to terminate!");
-            throw e;
-        }
-
-        logger.debug("ERROR stream:");
-        logger.debug(errorGobbler.result);
-        res.append(errorGobbler.result);
-
-        logger.debug("OUTPUT stream:");
-        logger.debug(outputGobbler.result);
-        res.append(outputGobbler.result);
-
-        logger.debug("Command output: ");
-        logger.debug(res.toString());
-
-        return res.toString();
     }
 
     private void updateStatus(Map<String, Object> serverFamily) {
@@ -129,7 +72,7 @@ public class BackofficeController {
             String status = "";
 
             try {
-                String out = getServerStatus(ip, key, username, script);
+                String out = RemoteExecBySSH.execScript(ip, key, username, script);
 
                 if (isAWS) {
                     if (out.contains("Bad")) status = "CRITICAL";
@@ -139,7 +82,7 @@ public class BackofficeController {
                     if (out.contains("WARNING")) status = "WARNING";
                     if (out.contains("OK")) status = "OK";
                 }
-            } catch (InterruptedException | IOException e) {
+            } catch (JSchException | IOException e) {
                 logger.error("Can't get status of server " + ip, e);
                 status = "CRITICAL";
             }
@@ -176,33 +119,3 @@ public class BackofficeController {
     }
 }
 
-class StreamGobbler extends Thread {
-    private static final Logger logger = LoggerFactory.getLogger(StreamGobbler.class);
-
-    InputStream is;
-    String type;
-    String result;
-
-    StreamGobbler(InputStream is, String type) {
-        this.is = is;
-        this.type = type;
-    }
-
-    public void run() {
-        try {
-            logger.debug("Reading " + type);
-            InputStreamReader isr = new InputStreamReader(is);
-            BufferedReader br = new BufferedReader(isr);
-            String line;
-            StringBuilder sb = new StringBuilder();
-
-            while ((line = br.readLine()) != null)
-                sb.append(line).append(System.lineSeparator());
-
-            logger.debug("Reading " + type + " completed");
-            result = sb.toString();
-        } catch (IOException ioe) {
-            logger.error("Exception while reading " + type, ioe);
-        }
-    }
-}
