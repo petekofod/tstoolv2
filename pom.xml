@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>net.railwaynet</groupId>
-	<artifactId>federations</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<artifactId>tstoolv2</artifactId>
+	<version>1.0</version>
 	<packaging>jar</packaging>
-	<name>federaions</name>
+	<name>tstool-support</name>
 	<description>Web service to get federation statuses in JSON format</description>
 
 	<properties>
@@ -20,6 +20,10 @@
 	</properties>
 
 	<dependencies>
+	        <dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
@@ -79,6 +83,11 @@
 			        <configuration>
 				        <skipTests>true</skipTests>
 			        </configuration>
+			</plugin>
+			<plugin>
+			  <groupId>org.eclipse.jkube</groupId>
+			  <artifactId>openshift-maven-plugin</artifactId>
+			  <version>1.0.2</version>
 			</plugin>
 		</plugins>
 	</build>
